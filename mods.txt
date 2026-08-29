@@ -1,0 +1,9 @@
+# Server-side mods. One Modrinth slug per line.
+# Versions are resolved against MC_VERSION at fetch time, so bumping the
+# Minecraft version does not mean re-pasting a wall of CDN links.
+
+fabric-api
+lithium
+c2me-fabric
+chunky
+carpet

@@ -1,0 +1,7 @@
+# Runtime state. The repo describes the server; it does not carry it.
+server/*
+!server/mods/
+server/mods/*
+client/mods/*
+.env
+*.log

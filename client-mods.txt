@@ -1,0 +1,8 @@
+# Client-side mods. Same format as mods.txt. These go to whoever is playing.
+
+fabric-api
+sodium
+lithium
+modmenu
+litematica
+malilib
