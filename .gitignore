@@ -5,3 +5,4 @@ server/mods/*
 client/mods/*
 .env
 *.log
+backups/

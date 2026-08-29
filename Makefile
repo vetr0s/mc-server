@@ -14,7 +14,7 @@ JAVA_CMD := java -Xms$(MEMORY) -Xmx$(MEMORY) -jar fabric-server-launch.jar nogui
 
 export MC_VERSION BIND_IP PORT
 
-.PHONY: help preflight jar mods client-mods eula settings run start stop console logs status clean clean-all
+.PHONY: help preflight jar mods backup restore-help client-mods eula settings run start stop console logs status clean clean-all
 
 help:
 	@echo "mc-server: Fabric $(MC_VERSION) on the tailnet"
@@ -30,6 +30,7 @@ help:
 	@echo "  make console      Attach to the running console (ctrl-b d to detach)"
 	@echo "  make stop         Save and shut down cleanly"
 	@echo "  make logs         Tail the server log"
+	@echo "  make backup       Snapshot the world to backups/, keeps the last 10"
 	@echo "  make status       Tailnet address, listener, session state"
 	@echo ""
 	@echo "  make clean        Remove mods and the launcher"
@@ -85,6 +86,10 @@ stop:
 
 logs:
 	@tail -f $(SERVER)/logs/latest.log
+
+# Safe to run while players are online; writes are held only for the tar.
+backup:
+	@./bin/backup.sh $(SERVER) backups $(SESSION)
 
 status:
 	@echo "tailnet:  $${BIND_IP:-(down)}  [$$(tailscale status --json 2>/dev/null | jq -r '.BackendState // "unknown"')]"

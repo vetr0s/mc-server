@@ -50,6 +50,7 @@ allow-all rule in Access Controls:
     make console    # attach to the console, ctrl-b d to detach
     make stop       # sends 'stop' and waits for the world to save
     make logs       # tail server/logs/latest.log
+    make backup     # snapshot the world, safe while players are online
     make status     # tailnet address, session, listener, sleep setting
 
 `make` on its own lists every target.
@@ -79,9 +80,11 @@ bind address from `tailscale ip -4`. With Tailscale down there is no address,
 and preflight fails instead of falling back to a public bind. This is
 deliberate. Start Tailscale, then start the server.
 
-**Backups do not exist.** `server/world` is gitignored and nothing copies it
-anywhere. One bad command or one disk failure ends the world. Copy it
-somewhere while the server is stopped.
+**Backups are manual.** `make backup` writes a dated tarball to `backups/`
+and keeps the last 10. Nothing runs it on a schedule, so it only happens when
+you type it. Add a cron entry or a LaunchAgent if you want it automatic.
+`backups/` is gitignored and sits on the same disk as the world, so copy the
+tarballs somewhere else to survive a disk failure.
 
 **Bumping the Minecraft version breaks mods.** Change `MC_VERSION` in
 `config.mk` and run `make mods`. Every slug in `mods.txt` is resolved against
@@ -113,6 +116,8 @@ firewall:
     server-settings.properties  merged into server.properties on every run
     bin/fetch-mods.sh           resolves slugs to jars, deletes stale ones
     bin/inject-settings.sh      merges settings, forces the bind address
+    bin/backup.sh               dated world snapshot, holds writes during tar
+    backups/                    world tarballs, gitignored
     server/                     runtime, gitignored
     client/mods/                jars to hand to players, gitignored
 
