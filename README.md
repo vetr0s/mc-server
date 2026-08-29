@@ -26,10 +26,25 @@ version or the client is rejected at login.
 
 ## Adding a player
 
-Share the machine rather than adding the person to the tailnet. In the
-[admin console](https://login.tailscale.com/admin/machines), open the `...`
-menu on `hermes` and choose Share. They make their own free Tailscale account,
-accept the share, and connect to `100.88.125.105:25565`.
+Share the machine with them. Do not invite them into the tailnet as a user.
+Sharing is a separate mechanism and it gives them one device instead of all
+of them.
+
+They need their own Tailscale account, which is free and can use a different
+login provider than yours.
+
+1. They install Tailscale on the machine they will play on and sign in.
+2. Open the [admin console](https://login.tailscale.com/admin/machines).
+3. Find `hermes`, open the `...` menu, choose Share.
+4. Enter their email, or copy the share link and send it.
+5. They open the link and accept. `hermes` appears in their Tailscale client.
+6. They add a Minecraft server pointing at `100.88.125.105:25565`.
+
+Give them the IP and not the MagicDNS name. Shared nodes resolve differently
+depending on the other tailnet's DNS settings, and the IP always works.
+
+They also need the jars from `client/mods` and Minecraft 26.2. A version
+mismatch is rejected at login.
 
 Sharing works per device, not per port, so by default a shared user reaches
 every port on `hermes`. To limit them to the game, replace the default
@@ -101,6 +116,15 @@ rendering bugs on the client.
 **RCON is off.** Minecraft silently disables RCON when `rcon.password` is
 empty and only mentions it in a startup warning. Set a password in
 `server-settings.properties` before turning it on for a Discord bot.
+
+**Relayed connections are slower than direct ones.** `tailscale ping hermes`
+from the other machine says which one you get. Tailscale always prefers a
+direct connection and falls back to DERP when hole punching fails, so there is
+no flag that forces direct. You remove whatever blocks it instead. Check, in
+order: the macOS firewall is not blocking the Tailscale system extension,
+`tailscale netcheck` on the other machine reports `UDP: true` and
+`MappingVariesByDestIP: false`, and the router has UPnP or NAT-PMP on so
+`PortMapping` is not empty. A relayed link still works and is playable.
 
 **If a player cannot connect**, check `make status` first for the listener.
 If the server is listening and they still fail, allow Java through the
