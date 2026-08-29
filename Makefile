@@ -90,8 +90,8 @@ status:
 	@echo "tailnet:  $${BIND_IP:-(down)}  [$$(tailscale status --json 2>/dev/null | jq -r '.BackendState // "unknown"')]"
 	@printf "session:  "; tmux has-session -t $(SESSION) 2>/dev/null && echo "running" || echo "stopped"
 	@printf "listener: "; l=$$(lsof -nP -iTCP:$(PORT) -sTCP:LISTEN 2>/dev/null | tail -1); echo "$${l:-none}"
-	@printf "sleep:    "; if pmset -g 2>/dev/null | grep -qi "sleepdisabled *1" || \
-	  plutil -p /Library/Preferences/com.apple.PowerManagement.plist 2>/dev/null | grep -qi '"SleepDisabled" => 1'; \
+	@printf "sleep:    "; if pmset -g 2>/dev/null | grep -qiE "sleepdisabled[[:space:]]+1" || \
+	  plutil -p /Library/Preferences/com.apple.PowerManagement.plist 2>/dev/null | grep -qi '"SleepDisabled" => \(1\|true\)'; \
 	then echo "lid-close sleep disabled"; \
 	else echo "WILL SLEEP on lid close -> sudo pmset -a disablesleep 1"; fi
 
