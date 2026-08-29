@@ -66,6 +66,8 @@ allow-all rule in Access Controls:
     make stop       # sends 'stop' and waits for the world to save
     make logs       # tail server/logs/latest.log
     make backup     # snapshot the world, safe while players are online
+
+    make install-service   # start automatically at login
     make status     # tailnet address, session, listener, sleep setting
 
 `make` on its own lists every target.
@@ -84,9 +86,21 @@ This survives reboots. `make status` reports whether it is set. Keep the
 machine on power, because the setting stops the sleep and not the battery
 drain.
 
-The server does not start on boot. After a restart or a logout the tmux
-session is gone and you run `make start` again. Set up a LaunchAgent if that
-becomes annoying.
+To start the server automatically, install the LaunchAgent once:
+
+    make install-service     # start at login
+    make uninstall-service   # stop doing that
+
+This is a LaunchAgent and not a LaunchDaemon, so it runs at login rather than
+at boot. That is deliberate. The Tailscale app on macOS is per-user, so before
+someone logs in there is no tunnel and no address to bind to. The agent waits
+up to two minutes for Tailscale to report Running, then hands off to
+`make start`. If the tunnel never comes up it gives up instead of starting a
+server that cannot bind. It also does nothing when the server is already
+running, so it is safe to trigger twice.
+
+Its output goes to `server/logs/launchd.log`, which is where to look if the
+server is missing after a reboot.
 
 ## Things that will bite you later
 
@@ -141,6 +155,7 @@ firewall:
     bin/fetch-mods.sh           resolves slugs to jars, deletes stale ones
     bin/inject-settings.sh      merges settings, forces the bind address
     bin/backup.sh               dated world snapshot, holds writes during tar
+    bin/boot-start.sh           waits for Tailscale, then starts, run by launchd
     backups/                    world tarballs, gitignored
     server/                     runtime, gitignored
     client/mods/                jars to hand to players, gitignored

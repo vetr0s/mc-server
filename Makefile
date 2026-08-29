@@ -14,7 +14,7 @@ JAVA_CMD := java -Xms$(MEMORY) -Xmx$(MEMORY) -jar fabric-server-launch.jar nogui
 
 export MC_VERSION BIND_IP PORT
 
-.PHONY: help preflight jar mods backup restore-help client-mods eula settings run start stop console logs status clean clean-all
+.PHONY: help preflight jar mods backup install-service uninstall-service client-mods eula settings run start stop console logs status clean clean-all
 
 help:
 	@echo "mc-server: Fabric $(MC_VERSION) on the tailnet"
@@ -31,6 +31,9 @@ help:
 	@echo "  make stop         Save and shut down cleanly"
 	@echo "  make logs         Tail the server log"
 	@echo "  make backup       Snapshot the world to backups/, keeps the last 10"
+	@echo ""
+	@echo "  make install-service    Start the server automatically at login"
+	@echo "  make uninstall-service  Stop doing that"
 	@echo "  make status       Tailnet address, listener, session state"
 	@echo ""
 	@echo "  make clean        Remove mods and the launcher"
@@ -90,6 +93,38 @@ logs:
 # Safe to run while players are online; writes are held only for the tar.
 backup:
 	@./bin/backup.sh $(SERVER) backups $(SESSION)
+
+LABEL := com.$(USER).mc-server
+PLIST := $(HOME)/Library/LaunchAgents/$(LABEL).plist
+
+# A LaunchAgent, not a LaunchDaemon. The Tailscale app is per-user, so there is
+# no tunnel to bind to until someone logs in.
+install-service:
+	@mkdir -p $(HOME)/Library/LaunchAgents $(SERVER)/logs
+	@printf '%s\n' \
+	  '<?xml version="1.0" encoding="UTF-8"?>' \
+	  '<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' \
+	  '<plist version="1.0"><dict>' \
+	  '  <key>Label</key><string>$(LABEL)</string>' \
+	  '  <key>ProgramArguments</key><array>' \
+	  '    <string>/bin/bash</string>' \
+	  '    <string>$(CURDIR)/bin/boot-start.sh</string>' \
+	  '    <string>$(CURDIR)</string>' \
+	  '  </array>' \
+	  '  <key>RunAtLoad</key><true/>' \
+	  '  <key>WorkingDirectory</key><string>$(CURDIR)</string>' \
+	  '  <key>StandardOutPath</key><string>$(CURDIR)/$(SERVER)/logs/launchd.log</string>' \
+	  '  <key>StandardErrorPath</key><string>$(CURDIR)/$(SERVER)/logs/launchd.log</string>' \
+	  '</dict></plist>' > $(PLIST)
+	@plutil -lint $(PLIST) >/dev/null || { echo "generated plist is malformed"; exit 1; }
+	@launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null || true
+	@launchctl bootstrap gui/$$(id -u) $(PLIST)
+	@echo "Installed $(LABEL). Starts at login, logs to $(SERVER)/logs/launchd.log"
+
+uninstall-service:
+	@launchctl bootout gui/$$(id -u)/$(LABEL) 2>/dev/null || true
+	@rm -f $(PLIST)
+	@echo "Removed $(LABEL). The server no longer starts at login."
 
 status:
 	@echo "tailnet:  $${BIND_IP:-(down)}  [$$(tailscale status --json 2>/dev/null | jq -r '.BackendState // "unknown"')]"
