@@ -14,7 +14,7 @@ JAVA_CMD := java -Xms$(MEMORY) -Xmx$(MEMORY) -jar fabric-server-launch.jar nogui
 
 export MC_VERSION BIND_IP PORT
 
-.PHONY: help preflight jar mods backup install-service uninstall-service client-mods eula settings run start stop console logs status clean clean-all
+.PHONY: help preflight jar mods backup regen-world install-service uninstall-service client-mods eula settings run start stop console logs status clean clean-all
 
 help:
 	@echo "mc-server: Fabric $(MC_VERSION) on the tailnet"
@@ -31,6 +31,7 @@ help:
 	@echo "  make stop         Save and shut down cleanly"
 	@echo "  make logs         Tail the server log"
 	@echo "  make backup       Snapshot the world to backups/, keeps the last 10"
+	@echo "  make regen-world SEED=<seed>  Back up, wipe, and reseed the world"
 	@echo ""
 	@echo "  make install-service    Start the server automatically at login"
 	@echo "  make uninstall-service  Stop doing that"
@@ -93,6 +94,19 @@ logs:
 # Safe to run while players are online; writes are held only for the tar.
 backup:
 	@./bin/backup.sh $(SERVER) backups $(SESSION)
+
+# Change the world seed without losing the old world. Backs it up, deletes it,
+# and writes level-seed so the next start generates fresh terrain. Refuses
+# while the server is up, because deleting the world under it corrupts the save.
+regen-world:
+	@test -n "$(SEED)" || { echo "Usage: make regen-world SEED=<seed>"; exit 1; }
+	@tmux has-session -t $(SESSION) 2>/dev/null && { echo "Server is running. Run 'make stop' first."; exit 1; } || true
+	@$(MAKE) -s backup
+	@rm -rf $(SERVER)/world*
+	@touch $(SERVER)/server.properties
+	@awk -F= -v k=level-seed -v v='$(SEED)' 'BEGIN{OFS=FS} $$1==k{print k"="v;s=1;next}{print} END{if(!s)print k"="v}' \
+	  $(SERVER)/server.properties > $(SERVER)/server.properties.tmp && mv $(SERVER)/server.properties.tmp $(SERVER)/server.properties
+	@echo "World cleared, seed set to $(SEED). Run 'make start' to generate it."
 
 LABEL := com.$(USER).mc-server
 PLIST := $(HOME)/Library/LaunchAgents/$(LABEL).plist

@@ -66,6 +66,7 @@ allow-all rule in Access Controls:
     make stop       # sends 'stop' and waits for the world to save
     make logs       # tail server/logs/latest.log
     make backup     # snapshot the world, safe while players are online
+    make regen-world SEED=<seed>   # back up, wipe, and reseed the world
 
     make install-service   # start automatically at login
     make status     # tailnet address, session, listener, sleep setting
@@ -75,6 +76,22 @@ allow-all rule in Access Controls:
 Always stop with `make stop`. It waits for the save to finish. Killing the
 tmux session or the java process directly loses whatever has not been written
 to disk.
+
+## Changing the seed
+
+    make regen-world SEED=<seed>
+
+This backs up the current world with `make backup`, deletes `server/world`,
+and writes `level-seed` into `server/server.properties`. The next `make start`
+generates the new world. It refuses while the server is running, because
+deleting the world under a live server corrupts the save.
+
+The old world stays in `backups/` as a dated tarball. Nothing else is touched,
+so the mods, settings, and service install carry over unchanged.
+
+The seed lands in `server/server.properties`, which is gitignored, so it is
+not recorded in the repo. Note it down if you want to regenerate the same
+world later.
 
 ## Keeping it up with the lid closed
 
